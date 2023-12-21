@@ -58,3 +58,26 @@ func (db *Database) Add(u *User) error {
 
 	return nil
 }
+
+func (db *Database) Delete(email string) error {
+	tx, err := db.cnx.Begin()
+	if err != nil {
+		return fmt.Errorf("begin 'delete' transaction failed: %w", err)
+	}
+
+	sqlDelete := fmt.Sprintf("DELETE FROM %s WHERE email = ?", tableName)
+	stmt, err := tx.Prepare(sqlDelete)
+	if err != nil {
+		return fmt.Errorf("prepare 'delete' transaction failed: %w", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(email)
+	if err != nil {
+		return fmt.Errorf("exec 'delete' transaction failed: %w", err)
+	}
+
+	tx.Commit()
+
+	return nil
+}

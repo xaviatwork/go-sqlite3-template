@@ -41,6 +41,13 @@ func TestAdd(t *testing.T) {
 	t.Logf("(add) added email: %s", u.Email)
 }
 
+func TestDelete(t *testing.T) {
+	dsn := "file:db4test.db"
+	db, email := setupDB(dsn, t)
+	t.Logf("(delete): test email: %s", email)
+	if err := db.Delete(email); err != nil {
+		t.Errorf("failed to delete user %s, %s", email, err.Error())
+	}
 }
 
 func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
