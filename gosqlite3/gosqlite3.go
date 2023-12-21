@@ -97,3 +97,26 @@ func (db *Database) Get(email string) (*User, error) {
 
 	return u, nil
 }
+
+func (db *Database) Update(u *User) error {
+	tx, err := db.cnx.Begin()
+	if err != nil {
+		return fmt.Errorf("begin 'update' transaction failed: %w", err)
+	}
+
+	sqlUpdate := fmt.Sprintf("UPDATE %s SET email = ?, password = ? WHERE email = ?", tableName)
+	stmt, err := tx.Prepare(sqlUpdate)
+	if err != nil {
+		return fmt.Errorf("prepare 'update' transaction failed: %w", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(u.Email, u.Password, u.Email)
+	if err != nil {
+		return fmt.Errorf("exec 'update' transaction failed: %w", err)
+	}
+
+	tx.Commit()
+
+	return nil
+}

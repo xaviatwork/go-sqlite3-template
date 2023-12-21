@@ -75,6 +75,26 @@ func TestGet(t *testing.T) {
 	})
 }
 
+func TestUpdate(t *testing.T) {
+	dsn := "file:db4test.db"
+	db, email := setupDB(dsn, t)
+	t.Logf("(update) email: %s", email)
+	u, err := db.Get(email)
+	if err != nil {
+		t.Errorf("failed to get user %s, %s", email, err.Error())
+	}
+
+	u.Password = "updated_p@55w0rD"
+	if err := db.Update(u); err != nil {
+		t.Errorf("error updating user %s: %s", u.Email, err.Error())
+	}
+
+	t.Cleanup(func() {
+		db.Delete(u.Email)
+		t.Logf("(cleanup) deleted user %s", u.Email)
+	})
+}
+
 func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
 	db, err := gosqlite3.Connect(dsn)
 	if err != nil {
