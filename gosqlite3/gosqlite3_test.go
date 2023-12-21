@@ -28,6 +28,18 @@ func TestConnect(t *testing.T) {
 	}
 }
 
+func TestAdd(t *testing.T) {
+	dsn := "file:db4test.db"
+	db, _ := setupDB(dsn, t)
+	u := &gosqlite3.User{
+		Email:    gofakeit.Email(),
+		Password: gofakeit.Password(true, true, true, true, false, 15),
+	}
+	if err := db.Add(u); err != nil {
+		t.Errorf("failed to insert user: %s", err.Error())
+	}
+}
+
 func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
 	db, err := gosqlite3.Connect(dsn)
 	if err != nil {
