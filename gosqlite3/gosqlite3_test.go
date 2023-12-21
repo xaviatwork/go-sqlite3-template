@@ -30,7 +30,7 @@ func TestConnect(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	dsn := "file:db4test.db"
-	db, _ := setupDB(dsn, t)
+	db, email := setupDB(dsn, t)
 	u := &gosqlite3.User{
 		Email:    gofakeit.Email(),
 		Password: gofakeit.Password(true, true, true, true, false, 15),
@@ -39,6 +39,13 @@ func TestAdd(t *testing.T) {
 		t.Errorf("failed to insert user: %s", err.Error())
 	}
 	t.Logf("(add) added email: %s", u.Email)
+
+	t.Cleanup(func() {
+		db.Delete(email) // Delete user created by setupDB
+		t.Logf("(cleanup) deleted user %s", email)
+		db.Delete(u.Email) // Delete user created by TestAdd
+		t.Logf("(cleanup) deleted user %s", u.Email)
+	})
 }
 
 func TestDelete(t *testing.T) {
