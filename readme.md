@@ -37,3 +37,19 @@ type Database struct {
     cnx *sql.DB
 }
 ```
+
+## ¿Métodos o funciones?
+
+Empezamos con la función de conexión a la base de datos.
+Lo primero que tenemos que decidir es si queremos una función o un método (asociado a `Database`).
+
+Es decir:
+
+```go
+// Function
+func Delete(u *User, db *Database) error {}
+// Method
+func (db *Database) Delete(u *User) error {}
+```
+
+En este caso, creo que como todas las operaciones giran alrededor de las acciones que se realizan en la base de datos, es mejor usar *métodos* y evitar tener que estar pasando la base de datos como parámetro constantemente.
