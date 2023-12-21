@@ -484,3 +484,56 @@ func (db *Database) Delete(email string) error {
     return nil
 }
 ```
+
+## Eliminar el usuario modificado durante el test
+
+Una vez que hemos probado la función `Delete`, podemos usarla como parte de `T.Cleanup` para eliminar el usuario modificado durante el test.
+
+Como sólo estamos interesados en eliminar el usuario, podemos invocar `db.Delete` directamente desde la función de `T.Cleanup`.
+
+Empezamos por el test `TestAdd`:
+
+```go
+func TestAdd(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    u := &gosqlite3.User{
+        Email:    gofakeit.Email(),
+        Password: gofakeit.Password(true, true, true, true, false, 15),
+    }
+    if err := db.Add(u); err != nil {
+        t.Errorf("failed to insert user: %s", err.Error())
+    }
+    t.Logf("(add) added email: %s", u.Email)
+
+    t.Cleanup(func() {
+        db.Delete(email) // Delete user created by setupDB
+        t.Logf("(cleanup) deleted user %s", email)
+        db.Delete(u.Email) // Delete user created by TestAdd
+        t.Logf("(cleanup) deleted user %s", u.Email)
+    })
+}
+```
+
+Ejecutando los tests en modo *verbose* observamos cómo se eliminan los usuarios creados:
+
+```go
+$ go test ./... -v 
+=== RUN   TestConnect
+--- PASS: TestConnect (0.04s)
+=== RUN   TestAdd
+    gosqlite3_test.go:73: (setupDB) test email: mozellemoore@balistreri.net
+    gosqlite3_test.go:41: (add) added email: jerryschmidt@schulist.org
+    gosqlite3_test.go:45: (cleanup) deleted user mozellemoore@balistreri.net
+    gosqlite3_test.go:47: (cleanup) deleted user jerryschmidt@schulist.org
+--- PASS: TestAdd (0.02s)
+=== RUN   TestDelete
+    gosqlite3_test.go:73: (setupDB) test email: lelahjacobi@zemlak.io
+    gosqlite3_test.go:54: (delete): test email: lelahjacobi@zemlak.io
+--- PASS: TestDelete (0.01s)
+=== RUN   Test_setupDB
+    gosqlite3_test.go:73: (setupDB) test email: narcisoolson@schneider.info
+--- PASS: Test_setupDB (0.00s)
+PASS
+ok      github.com/xaviatwork/gosqlite3/gosqlite3       0.144s
+```
