@@ -1,0 +1,23 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/go:1.21-bookworm",
+  "runArgs": [
+    "--platform=linux/amd64",
+    "--network=host"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.useLanguageServer": true,
+        "go.gopath": "/go"
+      },
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+		"golang.go",
+		"DavidAnson.vscode-markdownlint"
+	]
+    }
+  },
+  "postCreateCommand": "/bin/bash .devcontainer/post-create.sh"
+}
