@@ -649,3 +649,61 @@ func TestGet(t *testing.T) {
     })
 }
 ```
+
+## Actualizar un usuario
+
+A la hora de actualizar un usuario, en nuestro caso sólo podemos modificar la contraseña.
+En cualquier caso, la acción de actualizar un registro requiere pasar todos los campos, independientemente de si se han modificado o no.
+
+Empezamos creando el test:
+
+```go
+func TestUpdate(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    t.Logf("(update) email: %s", email)
+    u, err := db.Get(email)
+    if err != nil {
+        t.Errorf("failed to get user %s, %s", email, err.Error())
+    }
+
+    u.Password = "updated_p@55w0rD"
+    if err := db.Update(u); err != nil {
+        t.Errorf("error updating user %s: %s", u.Email, err.Error())
+    }
+
+    t.Cleanup(func() {
+        db.Delete(u.Email)
+        t.Logf("(cleanup) deleted user %s", u.Email)
+    })
+}
+```
+
+Obtenemos el valor de un usuario existente en la bbdd, actualizamos el *password* y lo actualizamos. Si no se produce un error, consideramos que el usuario se ha actualizado correctamente.
+
+Al tratarse de una operación de escritura en la base de datos, usamos una *transacción*:
+
+```go
+func (db *Database) Update(u *User) error {
+    tx, err := db.cnx.Begin()
+    if err != nil {
+        return fmt.Errorf("begin 'update' transaction failed: %w", err)
+    }
+
+    sqlUpdate := fmt.Sprintf("UPDATE %s SET email = ?, password = ? WHERE email = ?", tableName)
+    stmt, err := tx.Prepare(sqlUpdate)
+    if err != nil {
+        return fmt.Errorf("prepare 'update' transaction failed: %w", err)
+    }
+    defer stmt.Close()
+
+    _, err = stmt.Exec(u.Email, u.Password, u.Email)
+    if err != nil {
+        return fmt.Errorf("exec 'update' transaction failed: %w", err)
+    }
+
+    tx.Commit()
+
+    return nil
+}
+```
