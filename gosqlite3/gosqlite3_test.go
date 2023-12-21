@@ -80,4 +80,8 @@ func Test_setupDB(t *testing.T) {
 	if db == nil || email == "" {
 		t.Errorf("db setup failed with no error")
 	}
+	t.Cleanup(func() {
+		db.Delete(email) // Delete user created by Test_setupDB
+		t.Logf("(cleanup) deleted user %s", email)
+	})
 }
