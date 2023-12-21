@@ -53,3 +53,72 @@ func (db *Database) Delete(u *User) error {}
 ```
 
 En este caso, creo que como todas las operaciones giran alrededor de las acciones que se realizan en la base de datos, es mejor usar *métodos* y evitar tener que estar pasando la base de datos como parámetro constantemente.
+
+## Constructor de la conexión con la base de datos
+
+La función de conexión con la base de datos tendrá un doble objetivo:
+
+- conectar con la base de datos
+- asegurar la existencia de la tabla `users`
+
+Empezamos con la primera tarea:
+
+Si la conexión con la base de datos tiene éxito, se devuelve `*Database` y `nil`.
+Si no, se devuelve el error que se haya producido y `*Database` es `nil`.
+
+Definimos el test como:
+
+> Definimos los tests en un paquete separado llamado `gosqlite3_test`
+
+```go
+func TestConnect(t *testing.T) {
+    dsn := "file::memory:"
+    _, err := gosqlite3.Connect(dsn)
+    if err != nil {
+        t.Errorf("failed to connect to DB %q: %s", dsn, err.Error())
+    }
+}
+```
+
+La mínima cantidad de código que hace que el test compile es:
+
+```go
+func Connect(dsn string) (*Database, error) {
+    return nil, nil
+}
+```
+
+Ahora *refactorizamos* para que `Connect` haga *algo útil*.
+
+Para conectar con la base de datos, como usamos SQLite, tenemos que importar un *driver* específico.
+
+En mi caso uso [github.com/mattn/go-sqlite3](https://pkg.go.dev/github.com/mattn/go-sqlite3).
+
+```console
+$ go get github.com/mattn/go-sqlite3
+go: downloading github.com/mattn/go-sqlite3 v1.14.19
+go: added github.com/mattn/go-sqlite3 v1.14.19
+```
+
+También lo añado al fichero `gosqlite3.go`:
+
+```go
+import (
+    "database/sql"
+
+    _ "github.com/mattn/go-sqlite3"
+)
+```
+
+Y validamos que tras hacer cambios, el test sigue pasando:
+
+```go
+func Connect(dsn string) (*Database, error) {
+    driverName := "sqlite3"
+    conn, err := sql.Open(driverName, dsn)
+    if err != nil {
+        return &Database{}, err
+    }
+    return &Database{cnx: conn}, nil
+}
+```
