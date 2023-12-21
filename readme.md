@@ -363,5 +363,67 @@ marcoratke@graham.com|o|w?O9t|JTO6=_1
 sqlite>
 ```
 
-## Leer un usuario de la bbdd
+## Actualizar la función `setupDB`
+
+Antes hemos dejado la función `setupDB` inacabada para desarrollar y testear la función de insertar usuarios antes de usarla.
+
+Ahora añadimos a `setupDB` la capacidad de insertar un usuario de prueba.
+
+```go
+func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
+    db, err := gosqlite3.Connect(dsn)
+    if err != nil {
+        t.Errorf("db setup failed: %s", err.Error())
+    }
+    u := &gosqlite3.User{
+        Email:    gofakeit.Email(),
+        Password: gofakeit.Password(true, true, true, true, false, 15),
+    }
+    err = db.Add(u)
+    if err != nil {
+        t.Errorf("db setup failed: insert user: %s", err.Error())
+    }
+    t.Logf("(setupDB) test email: %s", u.Email)
+    return db, u.Email
+}
+```
+
+Hemos añadido unos `t.Logf` que imprimen el valor del *email* del usuario generado (cuando se ejecutan los test en modo *verbose*):
+
+```go
+$ go test ./... -v 
+=== RUN   TestConnect
+--- PASS: TestConnect (0.03s)
+=== RUN   TestAdd
+    gosqlite3_test.go:65: (setupDB) test email: derekkoelpin@walsh.org
+--- PASS: TestAdd (0.01s)
+=== RUN   TestDelete
+    gosqlite3_test.go:65: (setupDB) test email: zakarymurray@dooley.net
+    gosqlite3_test.go:46: (delete): test email: zakarymurray@dooley.net
+--- PASS: TestDelete (0.01s)
+=== RUN   Test_setupDB
+    gosqlite3_test.go:65: (setupDB) test email: hailiekuhn@dare.com
+--- PASS: Test_setupDB (0.00s)
+PASS
+ok      github.com/xaviatwork/gosqlite3/gosqlite3       0.137s
+```
+
+Si accedemos a la base de datos, vemos que tenemos todos los usuarios generados por la función `setupDB` excepto para el caso del test del borrado `TestDelete`:
+
+> El usuario adicional lo crea el test `TestAdd`, que no mostraba la dirección de correo del usuario añadido.
+
+```console
+$ sqlite3 gosqlite3/db4test.db 
+SQLite version 3.40.1 2022-12-28 14:03:47
+Enter ".help" for usage hints.
+sqlite> .tables
+users
+sqlite> select * from users;
+derekkoelpin@walsh.org|0%TxrB9}zbzn.k+
+veronagreenfelder@weimann.info|5)j$?jZ42au0wo}
+hailiekuhn@dare.com|__swTu+4kWQTLJ*
+sqlite>
+```
+
+> He actualizado el test para que se muestre el *email* del usuario añadido.
 
