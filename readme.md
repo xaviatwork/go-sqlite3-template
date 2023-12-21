@@ -288,3 +288,75 @@ func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
 ```
 
 > Como hemos importado el paquete `gofakeit` tenemos que actualizar las dependencias mediante `go mod tidy`.
+
+## Insertar un usuario en la base de datos (*reprise*)
+
+Mediante `setupDB` tenemos inicializada la conexión con la base de datos, estamos seguros de que la tabla `users` está creada.
+
+Ahora podemos concentrarnos en añadir un usuario.
+
+En este caso, usamos Gofakeit para generar las propiedades del usuario que vamos a insertar en la base de datos. Si no se produce ningún error, consideramos que la inserción ha tenido éxito.
+
+El test es:
+
+```go
+func TestAdd(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, _ := setupDB(dsn, t)
+    u := &gosqlite3.User{
+        Email:    gofakeit.Email(),
+        Password: gofakeit.Password(true, true, true, true, false, 15),
+    }
+    if err := db.Add(u); err != nil {
+        t.Errorf("failed to insert user: %s", err.Error())
+    }
+}
+```
+
+La mínima cantidad de código que satisface el test es:
+
+> Hemos decidido implmentar las operaciones CRUD como métodos del tipo `Database`.
+
+```go
+func (db *Database) Add(u *User) error {
+    return nil
+}
+```
+
+Refactorizamos:
+
+```go
+func (db *Database) Add(u *User) error {
+    tx, err := db.cnx.Begin()
+    if err != nil {
+        return fmt.Errorf("begin 'add' transaction failed: %w", err)
+    }
+
+    sqlInsert := fmt.Sprintf("INSERT INTO %s (email, password) VALUES (?,?)", tableName)
+    stmt, err := tx.Prepare(sqlInsert)
+    if err != nil {
+        return fmt.Errorf("prepare 'add' transaction failed: %w", err)
+    }
+    defer stmt.Close()
+
+    _, err = stmt.Exec(u.Email, u.Password)
+    if err != nil {
+        return fmt.Errorf("exec 'add' transaction failed: %w", err)
+    }
+
+    tx.Commit()
+
+    return nil
+}
+```
+
+Tras validar que el test se sigue ejecutando con éxito, conectamos a la base de datos para validar que se ha insertado un usuario en `users`:
+
+```console
+$ sqlite3 gosqlite3/db4test.db 
+SQLite version 3.40.1 2022-12-28 14:03:47
+Enter ".help" for usage hints.
+sqlite> select * from users;
+marcoratke@graham.com|o|w?O9t|JTO6=_1
+sqlite>
+```
