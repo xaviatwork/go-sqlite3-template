@@ -225,3 +225,66 @@ Enter ".help" for usage hints.
 sqlite> .tables
 users
 ```
+
+## Insertar un usuario en la base de datos
+
+Ahora que hemos conectado a la base de datos y que estamos seguros que la tabla `users` se ha creado, ha llegado el momento de insertar nuestro primer usuario.
+
+Generamos las propiedades del nuevo usuario usando [Gofakeit](https://github.com/brianvoe/gofakeit).
+
+En primer lugar, lo descargamos mediante:
+
+```console
+go get github.com/brianvoe/gofakeit/v6
+```
+
+Empezamos definiendo el *type* `User`:
+
+```go
+type User struct {
+    Email    string
+    Password string
+}
+```
+
+Para todos los métodos que tenemos que implementar necesitamos que la conexión con la base de datos se haya establecido, que no haya errores. Además, para la mayor parte de los test, es conveniente que ya exista un usuario en la base de datos.
+
+Para evitar tener que repetir todos estos pasos en cada uno de los tests, definimos una función auxiliar `setupDB`.
+
+## Configuración del test: `setupDB`
+
+Si la conexión con la base de datos no puede realizarse, falla la creación de la tabla  `users` o no se puede insertar el usuario, hacemos fallar el test (en vez de devolver el error). Para ello, tenemos que pasar el *test* (`*testing.T`) como parámetro, junto con la cadena de conexión a la base de datos.
+
+Esta función de *inicialización* devuelve la conexión con la base de datos (`*Database`) y el email del usuario insertado (para poder consultarlo, actualizarlo o borrarlo).
+
+Por ahora, dejamos la función de inicialización *a medias*; es decir, de momento, sólo se ocupa de la conexión con la base de datos, pero no se inserta el usuario. Para ello, y por no duplicar el código, esperamos a que hayamos testeado la función `Add` antes de introducirla en `setupDB`.
+
+Como vamos a hacer que `setupDB` falle si se produce cualquier error, el test sólo comprueba si, por cualquier motivo, pese a no haber fallado, no se devuelve alguno de los valores que nos interesan:
+
+```go
+func Test_setupDB(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    if db == nil || email == "" {
+        t.Errorf("db setup failed with no error")
+    }
+}
+```
+
+La función `setupDB` es (por ahora):
+
+```go
+func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
+    db, err := gosqlite3.Connect(dsn)
+    if err != nil {
+        t.Errorf("db setup failed: %s", err.Error())
+    }
+    u := &gosqlite3.User{
+        Email:    gofakeit.Email(),
+        Password: gofakeit.Password(true, true, true, true, false, 15),
+    }
+    return db, u.Email
+}
+```
+
+> Como hemos importado el paquete `gofakeit` tenemos que actualizar las dependencias mediante `go mod tidy`.
