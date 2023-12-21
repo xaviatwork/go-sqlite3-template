@@ -122,3 +122,50 @@ func Connect(dsn string) (*Database, error) {
     return &Database{cnx: conn}, nil
 }
 ```
+
+Este test sólo valida el caso en el que `Connect` tiene éxito (es decir, `err==nil`).
+
+Para validar el caso en el que la función `Connect` falle, he indicado en el `dsn` una ruta en la carpeta `/root`, de manera que la aplicación no pueda crear el fichero y genere un error.
+
+> Inicialmente el test seguía siendo exitoso, aunque el fichero no se estaba creando. Al parecer, hasta que no se realiza alguna acción contra la base de datos, no se crea el fichero... Para evitar este problema, he usado la función [Ping](https://pkg.go.dev/database/sql#DB.Ping).
+
+En primer lugar, introducimos una verificación de que la conexión con la base de datos ha sido existosa mediante `Ping`:
+
+```go
+func Connect(dsn string) (*Database, error) {
+    driverName := "sqlite3"
+    conn, err := sql.Open(driverName, dsn)
+    if err != nil {
+        return &Database{}, err
+    }
+    db := &Database{cnx: conn}
+    if err := db.cnx.Ping(); err != nil {
+        return &Database{}, err
+    }
+    return &Database{cnx: conn}, nil
+}
+```
+
+Por otro lado, en el propio test, vamos a verificar los posibles casos. Definimos un *struct* con los *test cases* e iteramos sobre los diferentes escenarios:
+
+```go
+func TestConnect(t *testing.T) {
+    type testCase struct {
+        description string
+        input       string
+        output      error
+    }
+    testcase := []testCase{
+        {description: "connection succeeds", input: "file::memory:", output: nil},
+        {description: "connection fails", input: "file:/root/db4test.db", output: sqlite3.ErrCantOpen},
+    }
+    for _, tc := range testcase {
+        _, err := gosqlite3.Connect(tc.input)
+        if err != nil {
+            if sqlite3Err := err.(sqlite3.Error); sqlite3Err.Code != tc.output {
+                t.Errorf("%s (for %q): %s", tc.description, tc.input, err.Error())
+            }
+        }
+    }
+}
+```
