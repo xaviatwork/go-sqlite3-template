@@ -169,3 +169,59 @@ func TestConnect(t *testing.T) {
     }
 }
 ```
+
+## Crear la tabla de `users`
+
+La función `Connect` también debe validar que la tabla `users` existe en la base de datos con la que se ha conectado.
+
+La creación de la tabla se realiza mediante la *query*:
+
+```console
+CREATE TABLE
+    IF NOT EXISTS
+        $TABLENAME (
+            email TEXT PRIMARY KEY,
+            password TEXT NOT NULL
+        )
+```
+
+Actualizamos `Connect` para ejecutar la *query* de creación de la tabla.
+
+```go
+func Connect(dsn string) (*Database, error) {
+    driverName := "sqlite3"
+    tableName := "users"
+    sqlCreateTable := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (email TEXT PRIMARY KEY, password TEXT NOT NULL);", tableName)
+    conn, err := sql.Open(driverName, dsn)
+    if err != nil {
+        return &Database{}, err
+    }
+    db := &Database{cnx: conn}
+    if err := db.cnx.Ping(); err != nil {
+        return &Database{}, err
+    }
+    _, err = db.cnx.Exec(sqlCreateTable)
+    if err != nil {
+        return &Database{}, err
+    }
+    return &Database{cnx: conn}, nil
+}
+```
+
+Para validar si la tabla se crea correctamente, modificamos la cadena de conexión del primer test para crear una base de datos en disco:
+
+```go
+// ...
+{description: "connection succeeds", input: "file:db4test.db", output: nil},
+// ...
+```
+
+Ejecutamos el test y validamos que sigue siendo exitoso; conectamos a la base de datos para validar que la tabla `users` se ha creado:
+
+```console
+$ sqlite3 gosqlite3/db4test.db 
+SQLite version 3.40.1 2022-12-28 14:03:47
+Enter ".help" for usage hints.
+sqlite> .tables
+users
+```
