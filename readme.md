@@ -427,3 +427,60 @@ sqlite>
 
 > He actualizado el test para que se muestre el *email* del usuario añadido.
 
+## Eliminar el usuario de test
+
+Al usar Gofakeit, cada usuario que insertamos en la base de datos tiene valores (pseudo)aleatorios. Sin embargo, para seguir con las buenas prácticas que habíamos indicado al principio, cada test debe encargarse de eliminar el usuario insertado (o modificado).
+
+Vamos a usar [T.Cleanup](https://pkg.go.dev/testing#T.Cleanup) para ejecutar una función al final de cada test (o conjunto de tests).
+
+Para ello, desarrollamos la función de eliminar usuarios y, después, pasaremos a actualizar los tests (y la función de `setupDB`) para elimnar las modificaciones realizadas durante las pruebas.
+
+El test para `Delete`:
+
+```go
+func TestDelete(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    t.Logf("(delete): test email: %s", email)
+    if err := db.Delete(email); err != nil {
+        t.Errorf("failed to delete user %s, %s", email, err.Error())
+    }
+}
+```
+
+Partimos de:
+
+```go
+func (db *Database) Delete(email string) error {
+    return nil
+}
+```
+
+y refactorizamos.
+
+Las accciones para borrar un usuario son muy parecidas a las de crearlo...
+
+```go
+func (db *Database) Delete(email string) error {
+    tx, err := db.cnx.Begin()
+    if err != nil {
+        return fmt.Errorf("begin 'delete' transaction failed: %w", err)
+    }
+
+    sqlDelete := fmt.Sprintf("DELETE FROM %s WHERE email = ?", tableName)
+    stmt, err := tx.Prepare(sqlDelete)
+    if err != nil {
+        return fmt.Errorf("prepare 'delete' transaction failed: %w", err)
+    }
+    defer stmt.Close()
+
+    _, err = stmt.Exec(email)
+    if err != nil {
+        return fmt.Errorf("exec 'delete' transaction failed: %w", err)
+    }
+
+    tx.Commit()
+
+    return nil
+}
+```
