@@ -11,6 +11,11 @@ type Database struct {
 	cnx *sql.DB
 }
 
+type User struct {
+	Email    string
+	Password string
+}
+
 func Connect(dsn string) (*Database, error) {
 	driverName := "sqlite3"
 	tableName := "users"
