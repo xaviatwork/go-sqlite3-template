@@ -16,5 +16,9 @@ func Connect(dsn string) (*Database, error) {
 	if err != nil {
 		return &Database{}, err
 	}
+	db := &Database{cnx: conn}
+	if err := db.cnx.Ping(); err != nil {
+		return &Database{}, err
+	}
 	return &Database{cnx: conn}, nil
 }
