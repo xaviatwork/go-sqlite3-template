@@ -57,6 +57,24 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestGet(t *testing.T) {
+	dsn := "file:db4test.db"
+	db, email := setupDB(dsn, t)
+	t.Logf("(get) email: %s", email)
+	u, err := db.Get(email)
+	if err != nil {
+		t.Errorf("failed to get user %s, %s", email, err.Error())
+	}
+	if u.Email != email {
+		t.Errorf("error retrieving user; got %s but wanted %s", u.Email, email)
+	}
+
+	t.Cleanup(func() {
+		db.Delete(email)
+		t.Logf("(cleanup) deleted user %s", u.Email)
+	})
+}
+
 func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
 	db, err := gosqlite3.Connect(dsn)
 	if err != nil {

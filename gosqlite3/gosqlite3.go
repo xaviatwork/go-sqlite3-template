@@ -81,3 +81,19 @@ func (db *Database) Delete(email string) error {
 
 	return nil
 }
+
+func (db *Database) Get(email string) (*User, error) {
+	sqlGet := fmt.Sprintf("SELECT * FROM %s WHERE email = ?", tableName)
+	stmt, err := db.cnx.Prepare(sqlGet)
+	if err != nil {
+		return &User{}, err
+	}
+
+	u := &User{}
+	err = stmt.QueryRow(email).Scan(&u.Email, &u.Password)
+	if err != nil {
+		return &User{}, fmt.Errorf("exec 'delete' transaction failed: %w", err)
+	}
+
+	return u, nil
+}
