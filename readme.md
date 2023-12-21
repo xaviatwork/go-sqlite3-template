@@ -537,3 +537,43 @@ $ go test ./... -v
 PASS
 ok      github.com/xaviatwork/gosqlite3/gosqlite3       0.144s
 ```
+
+Repetimos el proceso para la función `Test_setupDB`:
+
+```go
+func Test_setupDB(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    if db == nil || email == "" {
+        t.Errorf("db setup failed with no error")
+    }
+    t.Cleanup(func() {
+        db.Delete(email) // Delete user created by Test_setupDB
+        t.Logf("(cleanup) deleted user %s", email)
+    })
+}
+```
+
+Y ahora vemos que, tras cada test, se eliminan los usuarios generados, por lo que la base de datos se deja como estaba antes del test:
+
+```console
+$ go test ./... -v 
+=== RUN   TestConnect
+--- PASS: TestConnect (0.04s)
+=== RUN   TestAdd
+    gosqlite3_test.go:73: (setupDB) test email: eugenemueller@mckenzie.io
+    gosqlite3_test.go:41: (add) added email: ezratorphy@greenholt.name
+    gosqlite3_test.go:45: (cleanup) deleted user eugenemueller@mckenzie.io
+    gosqlite3_test.go:47: (cleanup) deleted user ezratorphy@greenholt.name
+--- PASS: TestAdd (0.02s)
+=== RUN   TestDelete
+    gosqlite3_test.go:73: (setupDB) test email: austynzulauf@runolfsdottir.info
+    gosqlite3_test.go:54: (delete): test email: austynzulauf@runolfsdottir.info
+--- PASS: TestDelete (0.03s)
+=== RUN   Test_setupDB
+    gosqlite3_test.go:73: (setupDB) test email: anahimohr@fay.name
+    gosqlite3_test.go:85: (cleanup) deleted user anahimohr@fay.name
+--- PASS: Test_setupDB (0.03s)
+PASS
+ok      github.com/xaviatwork/gosqlite3/gosqlite3       0.203s
+```
