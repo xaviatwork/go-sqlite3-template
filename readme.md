@@ -577,3 +577,75 @@ $ go test ./... -v
 PASS
 ok      github.com/xaviatwork/gosqlite3/gosqlite3       0.203s
 ```
+
+## Obtener un usuario de la base de datos (a partir de su *email*)
+
+La función de `setupDB` genera un usuario.
+Consultaremos si este usuario se encuentra en la base de datos. Si el *email* coincide con un usuario registrado, lo devolvemos. En caso contrario, devolvemos el error que se ha producido.
+
+Empezamos con el test:
+
+```go
+func TestGet(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    t.Logf("(get) email: %s", email)
+    u, err := db.Get(email)
+    if err != nil {
+        t.Errorf("failed to get user %s, %s", email, err.Error())
+    }
+    if u.Email != email {
+        t.Errorf("error retrieving user; got %s but wanted %s", u.Email, email)
+    }
+}
+```
+
+Conseguimos que compile con:
+
+```go
+func (db *Database) Get(email string) error {
+    return &User{}, nil
+}
+```
+
+Refactorizamos:
+
+```go
+func (db *Database) Get(email string) (*User, error) {
+    sqlGet := fmt.Sprintf("SELECT * FROM %s WHERE email = ?", tableName)
+    stmt, err := db.cnx.Prepare(sqlGet)
+    if err != nil {
+        return &User{}, err
+    }
+
+    u := &User{}
+    err = stmt.QueryRow(email).Scan(&u.Email, &u.Password)
+    if err != nil {
+        return &User{}, fmt.Errorf("exec 'delete' transaction failed: %w", err)
+    }
+
+    return u, nil
+}
+```
+
+Finalmente, eliminamos el usuario en el *cleanup*:
+
+```go
+func TestGet(t *testing.T) {
+    dsn := "file:db4test.db"
+    db, email := setupDB(dsn, t)
+    t.Logf("(get) email: %s", email)
+    u, err := db.Get(email)
+    if err != nil {
+        t.Errorf("failed to get user %s, %s", email, err.Error())
+    }
+    if u.Email != email {
+        t.Errorf("error retrieving user; got %s but wanted %s", u.Email, email)
+    }
+
+    t.Cleanup(func() {
+        db.Delete(email)
+        t.Logf("(cleanup) deleted user %s", u.Email)
+    })
+}
+```
