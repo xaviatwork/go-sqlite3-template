@@ -38,6 +38,9 @@ func TestAdd(t *testing.T) {
 	if err := db.Add(u); err != nil {
 		t.Errorf("failed to insert user: %s", err.Error())
 	}
+	t.Logf("(add) added email: %s", u.Email)
+}
+
 }
 
 func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
@@ -49,6 +52,11 @@ func setupDB(dsn string, t *testing.T) (*gosqlite3.Database, string) {
 		Email:    gofakeit.Email(),
 		Password: gofakeit.Password(true, true, true, true, false, 15),
 	}
+	err = db.Add(u)
+	if err != nil {
+		t.Errorf("db setup failed: insert user: %s", err.Error())
+	}
+	t.Logf("(setupDB) test email: %s", u.Email)
 	return db, u.Email
 }
 
