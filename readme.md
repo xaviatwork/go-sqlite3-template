@@ -707,3 +707,11 @@ func (db *Database) Update(u *User) error {
     return nil
 }
 ```
+
+## MVP finalizado
+
+Con estas funciones, cubrimos todas las operaciones CRUD para modificar "usuarios" en la base de datos.
+
+Queda refinar los tests, para cubrir muchos casos que no se están validando en estos momentos (¿qué pasa al borrar un usuario que no existe?, o ¿cómo falla si el email del usuario proporcionado ya se encuentra en la base de datos?, etc...)
+
+Sin embargo, como primera aproximación, me parece una solución aceptable.
