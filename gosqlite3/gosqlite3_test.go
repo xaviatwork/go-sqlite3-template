@@ -14,7 +14,7 @@ func TestConnect(t *testing.T) {
 		output      error
 	}
 	testcase := []testCase{
-		{description: "connection succeeds", input: "file::memory:", output: nil},
+		{description: "connection succeeds", input: "file:db4test.db", output: nil},
 		{description: "connection fails", input: "file:/root/db4test.db", output: sqlite3.ErrCantOpen},
 	}
 	for _, tc := range testcase {
