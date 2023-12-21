@@ -325,6 +325,8 @@ func (db *Database) Add(u *User) error {
 
 Refactorizamos:
 
+> Hemos convertido la variable `tableName` en global dentro del paquete para evitar tener que definirla en cada función. No quiero pasarla como parámetro porque quizás en el futuro me interese obtenerla de una variable de entorno o similar.
+
 ```go
 func (db *Database) Add(u *User) error {
     tx, err := db.cnx.Begin()
@@ -360,3 +362,6 @@ sqlite> select * from users;
 marcoratke@graham.com|o|w?O9t|JTO6=_1
 sqlite>
 ```
+
+## Leer un usuario de la bbdd
+
