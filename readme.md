@@ -790,3 +790,23 @@ if err == nil && u.Email != tc.input {
 }
 //...
 ```
+
+### El *cleanup* de `TestGet` es exitoso incluso para el email que no existe
+
+Revisando la salida (en modo *verbose*) de la ejecución de los test, observo que durante el proceso de *limpieza* posterior al test pasamos una dirección de correo que no pertenece a ningún usuario (`non-existing@mail.net`):
+
+```console
+=== RUN   TestGet
+    gosqlite3_test.go:129: (setupDB) test email: jeromemurphy@mueller.name
+    gosqlite3_test.go:77: (get) email: jeromemurphy@mueller.name
+    gosqlite3_test.go:77: (get) email: non-existing@mail.net
+    gosqlite3_test.go:91: (cleanup) deleted user 
+    gosqlite3_test.go:91: (cleanup) deleted user jeromemurphy@mueller.name
+--- PASS: TestGet (0.02s)
+```
+
+Sin embargo, la función `Delete` no devuelve ningún error.
+
+> El *email* que muestra en el log es `u.Email`, el *email* del usuario devuelto por la consulta a la base de datos. Como proporcionamos un *email* no coincide con el de ningún usuario en la base de datos, el usuario devuelto está vacío.
+
+Supongo que la lógica en la ejecución de SQL es `if email == non-existing@email.net" then delete *`; como la condición no se cumpl (porque el email proporcionado no coincide con un usuario en la base de datos), no borra ningún registro. La *query* se ha ejecutado con éxito, pero no ha borrado ningún registro, así que no se devuelve ningún error.
