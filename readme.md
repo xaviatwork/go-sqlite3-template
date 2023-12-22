@@ -809,4 +809,4 @@ Sin embargo, la función `Delete` no devuelve ningún error.
 
 > El *email* que muestra en el log es `u.Email`, el *email* del usuario devuelto por la consulta a la base de datos. Como proporcionamos un *email* no coincide con el de ningún usuario en la base de datos, el usuario devuelto está vacío.
 
-Supongo que la lógica en la ejecución de SQL es `if email == non-existing@email.net" then delete *`; como la condición no se cumpl (porque el email proporcionado no coincide con un usuario en la base de datos), no borra ningún registro. La *query* se ha ejecutado con éxito, pero no ha borrado ningún registro, así que no se devuelve ningún error.
+Supongo que la lógica en la ejecución de SQL es `if email == non-existing@email.net" then delete *`; como la condición no se cumple (porque el email proporcionado no coincide con un usuario en la base de datos), no borra ningún registro. La *query* se ha ejecutado con éxito, pero no ha borrado ningún registro, así que no se devuelve ningún error.
