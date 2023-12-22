@@ -715,3 +715,78 @@ Con estas funciones, cubrimos todas las operaciones CRUD para modificar "usuario
 Queda refinar los tests, para cubrir muchos casos que no se están validando en estos momentos (¿qué pasa al borrar un usuario que no existe?, o ¿cómo falla si el email del usuario proporcionado ya se encuentra en la base de datos?, etc...)
 
 Sin embargo, como primera aproximación, me parece una solución aceptable.
+
+## Obtener un usuario cuyo email no se encuentra en la bbdd
+
+Modificamos el test para incluir múltiples casos:
+
+```go
+func TestGet(t *testing.T) {
+    type testCase struct {
+        description string
+        input       string
+        output      error
+    }
+    dsn := "file:db4test.db"
+
+    db, email := setupDB(dsn, t)
+    testcase := []testCase{
+        {description: "existing email", input: email, output: nil},
+        {description: "email not found", input: "non-existing@mail.net", output: sql.ErrNoRows},
+    }
+
+    for _, tc := range testcase {
+        t.Logf("(get) email: %s", tc.input)
+
+        u, err := db.Get(tc.input)
+        if !errors.Is(err, tc.output) {
+            t.Errorf("failed to get user %s: %s", email, err.Error())
+            continue
+        }
+
+        if u.Email != tc.input {
+            t.Errorf("error retrieving user; got %s but wanted %s", u.Email, tc.input)
+        }
+
+        t.Cleanup(func() {
+            db.Delete(email)
+            t.Logf("(cleanup) deleted user %s", u.Email)
+        })
+    }
+}
+```
+
+El test falla:
+
+```console
+$ go test ./...
+--- FAIL: TestGet (0.01s)
+    gosqlite3_test.go:130: (setupDB) test email: medamurray@stanton.org
+    gosqlite3_test.go:77: (get) email: medamurray@stanton.org
+    gosqlite3_test.go:80: error: <nil>
+    gosqlite3_test.go:77: (get) email: non-existing@mail.net
+    gosqlite3_test.go:87: error retrieving user; got  but wanted non-existing@mail.net
+    gosqlite3_test.go:92: (cleanup) deleted user 
+    gosqlite3_test.go:92: (cleanup) deleted user medamurray@stanton.org
+FAIL
+FAIL    github.com/xaviatwork/gosqlite3/gosqlite3       0.147s
+FAIL
+```
+
+En la "especificación" del caso, hemos indicado que en este caso, el error que esperamos obtener es `sql.ErrNoRows`... Revisando el resultado, vemos que lo que provoca el fallo del test es:
+
+```console
+    gosqlite3_test.go:87: error retrieving user; got  but wanted non-existing@mail.net
+```
+
+Efectivamente; comprobamos si `err` es el error descrito en el *test case* y, así es. Pero después, intentamos verificar que el `email` del usuario devuelto por la consulta coincide con el que se indica en el test. Pero en este caso, como el email no pertenece a ningún usuario registrado, el "usuario" devuelto por la consulta está vacío, y por tanto, el campo `email` no coincide con el proporcionado en el test.
+
+Actualizamos el test para validar el `email` del usuario devuelto sólo si no se ha producido un error (en caso contrario, el usuario devuelto está vacío y no hay `email` que comprobar):
+
+```go
+//...
+if err == nil && u.Email != tc.input {
+    t.Errorf("error retrieving user; got %s but wanted %s", u.Email, tc.input)
+}
+//...
+```

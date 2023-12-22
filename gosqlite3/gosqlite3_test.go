@@ -1,6 +1,8 @@
 package gosqlite3_test
 
 import (
+	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -58,21 +60,37 @@ func TestDelete(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	dsn := "file:db4test.db"
-	db, email := setupDB(dsn, t)
-	t.Logf("(get) email: %s", email)
-	u, err := db.Get(email)
-	if err != nil {
-		t.Errorf("failed to get user %s, %s", email, err.Error())
+	type testCase struct {
+		description string
+		input       string
+		output      error
 	}
-	if u.Email != email {
-		t.Errorf("error retrieving user; got %s but wanted %s", u.Email, email)
+	dsn := "file:db4test.db"
+
+	db, email := setupDB(dsn, t)
+	testcase := []testCase{
+		{description: "existing email", input: email, output: nil},
+		{description: "email not found", input: "non-existing@mail.net", output: sql.ErrNoRows},
 	}
 
-	t.Cleanup(func() {
-		db.Delete(email)
-		t.Logf("(cleanup) deleted user %s", u.Email)
-	})
+	for _, tc := range testcase {
+		t.Logf("(get) email: %s", tc.input)
+
+		u, err := db.Get(tc.input)
+		if !errors.Is(err, tc.output) {
+			t.Errorf("failed to get user %s: %s", email, err.Error())
+			continue
+		}
+
+		if err == nil && u.Email != tc.input {
+			t.Errorf("error retrieving user; got %s but wanted %s", u.Email, tc.input)
+		}
+
+		t.Cleanup(func() {
+			db.Delete(email)
+			t.Logf("(cleanup) deleted user %s", u.Email)
+		})
+	}
 }
 
 func TestUpdate(t *testing.T) {
