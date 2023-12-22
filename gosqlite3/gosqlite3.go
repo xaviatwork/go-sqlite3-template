@@ -92,7 +92,7 @@ func (db *Database) Get(email string) (*User, error) {
 	u := &User{}
 	err = stmt.QueryRow(email).Scan(&u.Email, &u.Password)
 	if err != nil {
-		return &User{}, fmt.Errorf("exec 'delete' transaction failed: %w", err)
+		return &User{}, fmt.Errorf("failed to retrieve user with email %q: %w", email, err)
 	}
 
 	return u, nil
